@@ -1,80 +1,20 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-# Install required packages
+# Add Alpine testing repository and install packages
 RUN \
+    echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
+    apk update && \
     apk add --no-cache \
         bash \
         curl \
-        wget \
         jq \
         iptables \
         ip6tables \
         iproute2 \
         procps \
-        libstdc++ \
-        libgcc \
-        ca-certificates \
-        tar
-
-# Install Zerotier - using multiple methods
-RUN \
-    mkdir -p /var/lib/zerotier-one && \
-    cd /tmp && \
-    # Method 1: Try the install script with quiet mode
-    (curl -s https://install.zerotier.com/ | bash 2>&1 | tee /tmp/install.log || true) && \
-    # Method 2: If no zerotier-one binary, try manual download
-    if [ ! -f /usr/sbin/zerotier-one ]; then \
-        echo "Install script didn't work, trying manual download..." && \
-        # Get architecture
-        ARCH=$(uname -m) && \
-        echo "Architecture: $ARCH" && \
-        # Download based on architecture
-        if [ "$ARCH" = "x86_64" ]; then \
-            wget -O zerotier.tar.gz https://download.zerotier.com/RELEASES/1.12.2/dist/linux/zerotier-one-linux-amd64-1.12.2.tar.gz || \
-            wget -O zerotier.deb https://download.zerotier.com/debian/buster/pool/main/z/zerotier-one/zerotier-one_1.12.2_amd64.deb; \
-        elif [ "$ARCH" = "aarch64" ]; then \
-            wget -O zerotier.tar.gz https://download.zerotier.com/RELEASES/1.12.2/dist/linux/zerotier-one-linux-arm64-1.12.2.tar.gz || \
-            wget -O zerotier.deb https://download.zerotier.com/debian/buster/pool/main/z/zerotier-one/zerotier-one_1.12.2_arm64.deb; \
-        elif [ "$ARCH" = "armv7l" ]; then \
-            wget -O zerotier.deb https://download.zerotier.com/debian/buster/pool/main/z/zerotier-one/zerotier-one_1.12.2_armhf.deb; \
-        fi && \
-        # Extract based on file type
-        if [ -f zerotier.tar.gz ]; then \
-            tar -xzf zerotier.tar.gz && \
-            cp -f zerotier-one /usr/sbin/ 2>/dev/null || true; \
-        elif [ -f zerotier.deb ]; then \
-            ar x zerotier.deb && \
-            tar -xf data.tar.* && \
-            cp -f usr/sbin/zerotier-one /usr/sbin/ 2>/dev/null || true; \
-        fi; \
-    fi && \
-    # Method 3: Create a working daemon that logs properly
-    if [ ! -f /usr/sbin/zerotier-one ] || [ ! -x /usr/sbin/zerotier-one ]; then \
-        echo "WARNING: Zerotier binary not found or not executable, creating logging daemon" && \
-        printf '#!/bin/sh\n' > /usr/sbin/zerotier-one && \
-        printf 'if [ "$1" = "-U" ]; then\n' >> /usr/sbin/zerotier-one && \
-        printf '    echo "[Zerotier Placeholder] Starting in daemon mode..."\n' >> /usr/sbin/zerotier-one && \
-        printf '    echo "[Zerotier Placeholder] Real Zerotier installation failed during build"\n' >> /usr/sbin/zerotier-one && \
-        printf '    echo "[Zerotier Placeholder] Check GitHub Actions logs for details"\n' >> /usr/sbin/zerotier-one && \
-        printf '    while true; do sleep 3600; done\n' >> /usr/sbin/zerotier-one && \
-        printf 'else\n' >> /usr/sbin/zerotier-one && \
-        printf '    case "$*" in\n' >> /usr/sbin/zerotier-one && \
-        printf '        *info*) echo "200 info 1234567890abcdef 1.12.2 OFFLINE" ;;\n' >> /usr/sbin/zerotier-one && \
-        printf '        *listnetworks*) echo "200 listnetworks <none>" ;;\n' >> /usr/sbin/zerotier-one && \
-        printf '        *join*) echo "200 join OK" && echo "[Zerotier Placeholder] Cannot actually join network" ;;\n' >> /usr/sbin/zerotier-one && \
-        printf '        *) echo "200 placeholder" ;;\n' >> /usr/sbin/zerotier-one && \
-        printf '    esac\n' >> /usr/sbin/zerotier-one && \
-        printf 'fi\n' >> /usr/sbin/zerotier-one; \
-    fi && \
-    chmod +x /usr/sbin/zerotier-one && \
-    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
-    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool && \
-    # Test the binary
-    echo "Testing zerotier binary..." && \
-    /usr/sbin/zerotier-one -v 2>&1 || echo "Binary test completed" && \
-    # Clean up
-    rm -rf /tmp/*
+        zerotier-one@testing && \
+    mkdir -p /var/lib/zerotier-one
 
 # Copy root filesystem
 COPY rootfs /
