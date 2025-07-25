@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/with-contenv bashio
 
 CONFIG_FILE="/tmp/zerotier-gateway/config.json"
 

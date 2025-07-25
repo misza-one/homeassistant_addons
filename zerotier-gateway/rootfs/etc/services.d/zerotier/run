@@ -2,5 +2,5 @@
 
 bashio::log.info "Starting Zerotier One daemon..."
 
-# Start zerotier-one in foreground
-exec zerotier-one
+# Start zerotier-one in foreground mode
+exec zerotier-one -U
