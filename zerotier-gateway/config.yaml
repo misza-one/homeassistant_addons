@@ -44,7 +44,7 @@ schema:
   auto_authorize: "bool"
   log_level: "list(trace|debug|info|warn|error|fatal)?"
 
-# image: "ghcr.io/misza-one/zerotier-gateway-{arch}"  # Use after GitHub Actions builds the images
+image: "ghcr.io/misza-one/zerotier-gateway-{arch}"
 
 ports:
   9993/udp: 9993
