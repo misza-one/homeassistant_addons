@@ -13,12 +13,11 @@ RUN \
         iptables \
         ip6tables \
         iproute2 \
-        procps
+        procps \
+        zerotier-one
 
-# Install Zerotier
-RUN \
-    curl -s https://install.zerotier.com | sh \
-    && mkdir -p /var/lib/zerotier-one
+# Create Zerotier directory
+RUN mkdir -p /var/lib/zerotier-one
 
 # Install web interface dependencies (removed for now - not needed for basic functionality)
 # RUN pip3 install --no-cache-dir flask requests
