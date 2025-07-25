@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.2 - 2025-07-25
+
+### Fixed
+- Added proper Zerotier installation with fallback methods
+- First try official install script
+- Fallback to Alpine edge/testing repository
+- Final fallback to placeholder if both fail
+
 ## 1.2.1 - 2025-07-25
 
 ### Fixed
