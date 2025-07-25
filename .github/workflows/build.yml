@@ -48,7 +48,7 @@ jobs:
       - name: Get addon version
         id: version
         run: |
-          VERSION=$(jq -r '.version' "${{ env.ADDON_NAME }}/config.yaml")
+          VERSION=$(grep -E "^version:" "${{ env.ADDON_NAME }}/config.yaml" | sed 's/version: //g' | tr -d '"')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
 
