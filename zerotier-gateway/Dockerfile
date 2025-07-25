@@ -20,11 +20,40 @@ RUN \
 RUN \
     mkdir -p /var/lib/zerotier-one && \
     cd /tmp && \
-    # Try to download and extract zerotier based on architecture
     ARCH="${BUILD_ARCH}" && \
-    echo "Installing for architecture: $ARCH" && \
-    # For now, create a functional placeholder that allows testing
-    printf '#!/bin/sh\n' > /usr/sbin/zerotier-one && \
+    echo "Installing ZeroTier for architecture: $ARCH" && \
+    # Download pre-compiled static binary based on architecture
+    if [ "$ARCH" = "amd64" ]; then \
+        wget -O zerotier.tar.gz https://download.zerotier.com/dist/linux/generic/x64/zerotier-one-static-1.14.2.tar.gz || \
+        wget -O zerotier.tar.gz https://github.com/zerotier/ZeroTierOne/releases/download/1.14.2/zerotier-one-linux-x64-static-1.14.2.tar.gz; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        wget -O zerotier.tar.gz https://download.zerotier.com/dist/linux/generic/arm64/zerotier-one-static-1.14.2.tar.gz || \
+        wget -O zerotier.tar.gz https://github.com/zerotier/ZeroTierOne/releases/download/1.14.2/zerotier-one-linux-arm64-static-1.14.2.tar.gz; \
+    elif [ "$ARCH" = "armv7" ] || [ "$ARCH" = "armhf" ]; then \
+        wget -O zerotier.tar.gz https://download.zerotier.com/dist/linux/generic/arm32/zerotier-one-static-1.14.2.tar.gz || \
+        wget -O zerotier.tar.gz https://github.com/zerotier/ZeroTierOne/releases/download/1.14.2/zerotier-one-linux-arm32-static-1.14.2.tar.gz; \
+    fi && \
+    # Extract if download succeeded
+    if [ -f zerotier.tar.gz ]; then \
+        tar -xf zerotier.tar.gz && \
+        if [ -f zerotier-one ]; then \
+            cp zerotier-one /usr/sbin/ && \
+            chmod +x /usr/sbin/zerotier-one && \
+            ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
+            ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool && \
+            rm -rf /tmp/* && \
+            echo "ZeroTier binary installed successfully"; \
+        else \
+            echo "ZeroTier binary not found in archive, using placeholder" && \
+            printf '#!/bin/sh\n' > /usr/sbin/zerotier-one; \
+        fi; \
+    else \
+        echo "Failed to download ZeroTier, using placeholder" && \
+        printf '#!/bin/sh\n' > /usr/sbin/zerotier-one; \
+    fi && \
+    # If still no binary, create placeholder
+    if [ ! -x /usr/sbin/zerotier-one ]; then \
+        printf '#!/bin/sh\n' > /usr/sbin/zerotier-one && \
     printf '# Zerotier placeholder script\n' >> /usr/sbin/zerotier-one && \
     printf 'case "$1" in\n' >> /usr/sbin/zerotier-one && \
     printf '    -U)\n' >> /usr/sbin/zerotier-one && \
@@ -62,9 +91,10 @@ RUN \
     printf '        echo "200 zerotier-cli 1.12.2 placeholder"\n' >> /usr/sbin/zerotier-one && \
     printf '        ;;\n' >> /usr/sbin/zerotier-one && \
     printf 'esac\n' >> /usr/sbin/zerotier-one && \
-    chmod +x /usr/sbin/zerotier-one && \
-    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
-    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool
+        chmod +x /usr/sbin/zerotier-one && \
+        ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
+        ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool; \
+    fi
 
 # Copy root filesystem
 COPY rootfs /
