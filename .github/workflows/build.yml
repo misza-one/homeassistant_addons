@@ -52,6 +52,18 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
 
+      - name: Set build args
+        id: build_args
+        run: |
+          case "${{ matrix.arch }}" in
+            "aarch64") BUILD_FROM="ghcr.io/home-assistant/aarch64-base:3.19" ;;
+            "amd64") BUILD_FROM="ghcr.io/home-assistant/amd64-base:3.19" ;;
+            "armhf") BUILD_FROM="ghcr.io/home-assistant/armhf-base:3.19" ;;
+            "armv7") BUILD_FROM="ghcr.io/home-assistant/armv7-base:3.19" ;;
+            "i386") BUILD_FROM="ghcr.io/home-assistant/i386-base:3.19" ;;
+          esac
+          echo "build_from=$BUILD_FROM" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -63,7 +75,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.ADDON_NAME }}-${{ matrix.arch }}:latest
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.ADDON_NAME }}-${{ matrix.arch }}:${{ steps.version.outputs.version }}
           build-args: |
-            BUILD_FROM=ghcr.io/hassio-addons/base:15.0.1
+            BUILD_FROM=${{ steps.build_args.outputs.build_from }}
             BUILD_ARCH=${{ matrix.arch }}
             BUILD_VERSION=${{ steps.version.outputs.version }}
           cache-from: type=gha

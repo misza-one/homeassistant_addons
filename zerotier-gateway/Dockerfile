@@ -1,4 +1,4 @@
-ARG BUILD_FROM=ghcr.io/hassio-addons/base:15.0.1
+ARG BUILD_FROM
 FROM $BUILD_FROM
 
 # Set shell
@@ -7,16 +7,16 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Install packages
 RUN \
     apk add --no-cache \
-        bash=5.2.15-r5 \
-        curl=8.5.0-r0 \
-        jq=1.7.1-r0 \
-        iptables=1.8.10-r3 \
-        ip6tables=1.8.10-r3 \
-        iproute2=6.6.0-r0 \
-        procps=4.0.4-r0 \
-        python3=3.11.8-r0 \
-        py3-pip=23.3.1-r0 \
-        nginx=1.24.0-r15
+        bash \
+        curl \
+        jq \
+        iptables \
+        ip6tables \
+        iproute2 \
+        procps \
+        python3 \
+        py3-pip \
+        nginx
 
 # Install Zerotier
 RUN \
