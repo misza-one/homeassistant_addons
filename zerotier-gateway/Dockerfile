@@ -10,10 +10,43 @@ RUN \
         iptables \
         ip6tables \
         iproute2 \
-        procps
+        procps \
+        libstdc++ \
+        libgcc \
+        ca-certificates
 
-# Create directories
-RUN mkdir -p /var/lib/zerotier-one
+# Download and install Zerotier binary directly
+RUN \
+    mkdir -p /var/lib/zerotier-one && \
+    cd /tmp && \
+    # Download the installer script and extract the download URLs
+    curl -s https://install.zerotier.com/ > install.sh && \
+    # Try to run the installer
+    sh install.sh || true && \
+    # Check if zerotier-one exists, if not download manually
+    if [ ! -f /usr/sbin/zerotier-one ]; then \
+        echo "Installer failed, downloading manually..." && \
+        ARCH=$(uname -m) && \
+        if [ "$ARCH" = "x86_64" ]; then \
+            curl -L https://download.zerotier.com/debian/buster/pool/main/z/zerotier-one/zerotier-one_1.12.2_amd64.deb -o zt.deb && \
+            ar x zt.deb && tar -xf data.tar.xz && \
+            cp -a usr/sbin/zerotier-one /usr/sbin/ || true; \
+        elif [ "$ARCH" = "aarch64" ]; then \
+            curl -L https://download.zerotier.com/debian/buster/pool/main/z/zerotier-one/zerotier-one_1.12.2_arm64.deb -o zt.deb && \
+            ar x zt.deb && tar -xf data.tar.xz && \
+            cp -a usr/sbin/zerotier-one /usr/sbin/ || true; \
+        fi; \
+    fi && \
+    # Final check and create placeholder if all else fails
+    if [ ! -f /usr/sbin/zerotier-one ]; then \
+        echo "All installation methods failed, creating placeholder" && \
+        printf '#!/bin/sh\necho "Zerotier not installed"\nexit 1\n' > /usr/sbin/zerotier-one; \
+    fi && \
+    chmod +x /usr/sbin/zerotier-one && \
+    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
+    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool && \
+    # Clean up
+    rm -rf /tmp/*
 
 # Copy root filesystem
 COPY rootfs /
@@ -23,39 +56,6 @@ RUN chmod a+x /usr/bin/*.sh || true \
     && chmod a+x /etc/services.d/*/run || true \
     && chmod a+x /etc/services.d/*/finish || true \
     && chmod a+x /etc/cont-init.d/*.sh || true
-
-# Add edge repositories and install Zerotier
-RUN echo "@edge http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
-    echo "@edgecommunity http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
-    echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
-    apk update && \
-    (apk add --no-cache zerotier-one@testing || \
-     apk add --no-cache zerotier-one@edgecommunity || \
-     apk add --no-cache zerotier-one@edge || \
-     (echo "WARNING: Zerotier package not found, creating functional placeholder" && \
-      printf '#!/bin/sh\n' > /usr/sbin/zerotier-one && \
-      printf 'case "$1" in\n' >> /usr/sbin/zerotier-one && \
-      printf '  -U)\n' >> /usr/sbin/zerotier-one && \
-      printf '    echo "Starting Zerotier placeholder daemon..."\n' >> /usr/sbin/zerotier-one && \
-      printf '    while true; do sleep 3600; done\n' >> /usr/sbin/zerotier-one && \
-      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
-      printf '  info)\n' >> /usr/sbin/zerotier-one && \
-      printf '    echo "200 info 1234567890abcdef 1.12.2 OFFLINE"\n' >> /usr/sbin/zerotier-one && \
-      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
-      printf '  listnetworks)\n' >> /usr/sbin/zerotier-one && \
-      printf '    echo "200 listnetworks"\n' >> /usr/sbin/zerotier-one && \
-      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
-      printf '  join)\n' >> /usr/sbin/zerotier-one && \
-      printf '    echo "200 join OK"\n' >> /usr/sbin/zerotier-one && \
-      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
-      printf '  *)\n' >> /usr/sbin/zerotier-one && \
-      printf '    echo "200 zerotier-one placeholder"\n' >> /usr/sbin/zerotier-one && \
-      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
-      printf 'esac\n' >> /usr/sbin/zerotier-one && \
-      chmod +x /usr/sbin/zerotier-one)) && \
-    # Create symlinks if they don't exist
-    ([ -L /usr/sbin/zerotier-cli ] || ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli) && \
-    ([ -L /usr/sbin/zerotier-idtool ] || ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool)
 
 # Labels
 LABEL \

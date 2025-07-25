@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0 - 2025-07-25
+
+### Added
+- Direct download of Zerotier binary from official Debian packages
+- Support for amd64 and arm64 architectures
+- Better timeout handling with status messages
+
+### Fixed
+- Increased network join timeout to 5 minutes
+- Added ACCESS_DENIED detection
+- Improved status reporting during network join
+
 ## 1.2.2 - 2025-07-25
 
 ### Fixed

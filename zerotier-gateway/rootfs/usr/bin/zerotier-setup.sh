@@ -18,17 +18,23 @@ bashio::log.info "Joining Zerotier network: ${NETWORK_ID}"
 zerotier-cli join "${NETWORK_ID}"
 
 # Wait for network to be available
-timeout=120
+timeout=300  # Increased to 5 minutes
 while [ $timeout -gt 0 ]; do
     if zerotier-cli listnetworks | grep -q "${NETWORK_ID}"; then
         STATUS=$(zerotier-cli listnetworks | grep "${NETWORK_ID}" | awk '{print $6}')
         if [[ "$STATUS" == "OK" ]]; then
             bashio::log.info "Successfully joined network!"
             break
+        elif [[ "$STATUS" == "ACCESS_DENIED" ]]; then
+            bashio::log.warning "Access denied! Please authorize this device in Zerotier Central"
+            break
         fi
     fi
-    sleep 2
-    timeout=$((timeout-2))
+    sleep 5
+    timeout=$((timeout-5))
+    if [ $((timeout % 30)) -eq 0 ]; then
+        bashio::log.info "Still waiting for network authorization... ($timeout seconds remaining)"
+    fi
 done
 
 if [ $timeout -le 0 ]; then
