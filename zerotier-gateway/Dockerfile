@@ -1,27 +1,4 @@
-# Build arguments
 ARG BUILD_FROM
-
-# Build stage for ZeroTier
-FROM alpine:3.19 AS builder
-
-# Install build dependencies
-RUN apk add --no-cache \
-    git \
-    make \
-    gcc \
-    g++ \
-    linux-headers \
-    openssl-dev \
-    curl \
-    cargo \
-    rust
-
-# Clone and build ZeroTier
-RUN git clone --depth 1 --branch 1.14.2 https://github.com/zerotier/ZeroTierOne.git /build && \
-    cd /build && \
-    make -j$(nproc) one
-
-# Runtime stage
 FROM $BUILD_FROM
 
 # Install runtime dependencies
@@ -39,16 +16,46 @@ RUN \
         libgcc \
         tar \
         ca-certificates \
-        openssl \
-        libcrypto3 \
-        libssl3
+        openssl
 
-# Copy ZeroTier binary from builder
-COPY --from=builder /build/zerotier-one /usr/sbin/
-RUN ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
-    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool && \
+# Install ZeroTier based on architecture
+ARG BUILD_ARCH
+RUN \
+    mkdir -p /var/lib/zerotier-one && \
+    cd /tmp && \
+    ARCH="${BUILD_ARCH}" && \
+    echo "Installing ZeroTier for architecture: $ARCH" && \
+    # For amd64 and arm64, build from source
+    if [ "$ARCH" = "amd64" ] || [ "$ARCH" = "aarch64" ]; then \
+        echo "Building ZeroTier from source..." && \
+        apk add --no-cache --virtual .build-deps \
+            git \
+            make \
+            gcc \
+            g++ \
+            linux-headers \
+            openssl-dev \
+            cargo \
+            rust && \
+        git clone --depth 1 --branch 1.14.2 https://github.com/zerotier/ZeroTierOne.git && \
+        cd ZeroTierOne && \
+        make -j$(nproc) one && \
+        cp zerotier-one /usr/sbin/ && \
+        cd / && \
+        rm -rf /tmp/ZeroTierOne && \
+        apk del .build-deps && \
+        echo "ZeroTier built from source"; \
+    else \
+        echo "Using placeholder for unsupported architecture: $ARCH" && \
+        printf '#!/bin/sh\n' > /usr/sbin/zerotier-one && \
+        printf '# Zerotier placeholder for %s\n' "$ARCH" >> /usr/sbin/zerotier-one && \
+        printf 'echo "ZeroTier placeholder - architecture %s not yet supported"\n' "$ARCH" >> /usr/sbin/zerotier-one && \
+        printf 'echo "Only amd64 and aarch64 are currently supported with real ZeroTier"\n' >> /usr/sbin/zerotier-one && \
+        printf 'exit 1\n' >> /usr/sbin/zerotier-one; \
+    fi && \
     chmod +x /usr/sbin/zerotier-one && \
-    mkdir -p /var/lib/zerotier-one
+    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
+    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool
 
 # Copy root filesystem
 COPY rootfs /
@@ -58,9 +65,6 @@ RUN chmod a+x /usr/bin/*.sh || true \
     && chmod a+x /etc/services.d/*/run || true \
     && chmod a+x /etc/services.d/*/finish || true \
     && chmod a+x /etc/cont-init.d/*.sh || true
-
-# Test ZeroTier
-RUN zerotier-one -v || echo "ZeroTier check"
 
 # Labels
 LABEL \
