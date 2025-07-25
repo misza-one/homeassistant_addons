@@ -1,0 +1,9 @@
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Starting Gateway Manager..."
+
+# Wait for zerotier to start
+sleep 10
+
+# Start gateway manager
+exec /usr/bin/gateway-manager.sh

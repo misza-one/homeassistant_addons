@@ -1,0 +1,19 @@
+configuration:
+  network_id:
+    name: "Network ID"
+    description: "Your 16-character Zerotier Network ID"
+  local_subnet:
+    name: "Local Subnet"
+    description: "Your local network subnet (e.g., 192.168.1.0/24)"
+  auth_token:
+    name: "Auth Token"
+    description: "Zerotier API token for auto-authorization (optional)"
+  enable_gateway:
+    name: "Enable Gateway"
+    description: "Enable gateway functionality to access local network"
+  auto_authorize:
+    name: "Auto Authorize"
+    description: "Automatically authorize this device (requires auth token)"
+  log_level:
+    name: "Log Level"
+    description: "Set the logging verbosity"

@@ -1,0 +1,56 @@
+---
+name: "Zerotier Gateway"
+version: "1.2.0"
+slug: "zerotier_gateway"
+description: "Connect to Zerotier network and enable gateway functionality for local network access"
+url: "https://github.com/misza-one/homeassistant_addons"
+arch:
+  - armhf
+  - armv7
+  - aarch64
+  - amd64
+  - i386
+
+startup: system
+boot: auto
+init: false
+hassio_api: true
+hassio_role: manager
+privileged:
+  - NET_ADMIN
+  - SYS_ADMIN
+  - SYS_NICE
+
+apparmor: false
+host_network: true
+host_pid: true
+
+devices:
+  - /dev/net/tun:/dev/net/tun:rwm
+
+options:
+  network_id: ""
+  local_subnet: "192.168.1.0/24"
+  auth_token: ""
+  enable_gateway: true
+  auto_authorize: false
+  log_level: "info"
+
+schema:
+  network_id: "str"
+  local_subnet: "str"
+  auth_token: "str?"
+  enable_gateway: "bool"
+  auto_authorize: "bool"
+  log_level: "list(trace|debug|info|warn|error|fatal)?"
+
+image: "ghcr.io/misza-one/zerotier-gateway-{arch}"
+
+ports:
+  9993/udp: 9993
+
+panel_icon: "mdi:vpn"
+panel_title: "Zerotier Gateway"
+panel_admin: false
+
+webui: "http://[HOST]:[PORT:8099]"

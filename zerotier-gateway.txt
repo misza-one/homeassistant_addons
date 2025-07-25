@@ -1,0 +1,541 @@
+# Home Assistant Zerotier Gateway Add-on
+# Installable through Add-on Store GUI
+
+## Repository Structure:
+```
+ha-zerotier-gateway-addon/
+├── zerotier-gateway/
+│   ├── CHANGELOG.md
+│   ├── DOCS.md
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── config.yaml
+│   ├── icon.png
+│   ├── logo.png
+│   ├── rootfs/
+│   │   ├── etc/
+│   │   │   ├── cont-init.d/
+│   │   │   │   ├── 00-init-system.sh
+│   │   │   │   └── 01-setup-zerotier.sh
+│   │   │   └── services.d/
+│   │   │       ├── zerotier/
+│   │   │       │   ├── run
+│   │   │       │   └── finish
+│   │   │       └── gateway/
+│   │   │           ├── run
+│   │   │           └── finish
+│   │   └── usr/
+│   │       └── bin/
+│   │           ├── zerotier-setup.sh
+│   │           └── gateway-manager.sh
+│   └── translations/
+│       ├── en.yaml
+│       └── de.yaml
+└── repository.yaml
+```
+
+## repository.yaml
+```yaml
+name: "Zerotier Gateway Add-ons"
+url: "https://github.com/yourusername/ha-zerotier-gateway-addon"
+maintainer: "Your Name <your.email@example.com>"
+```
+
+## zerotier-gateway/config.yaml
+```yaml
+---
+name: "Zerotier Gateway"
+version: "1.2.0"
+slug: "zerotier_gateway"
+description: "Connect to Zerotier network and enable gateway functionality for local network access"
+url: "https://github.com/yourusername/ha-zerotier-gateway-addon"
+arch:
+  - armhf
+  - armv7
+  - aarch64
+  - amd64
+  - i386
+
+startup: system
+boot: auto
+init: false
+hassio_api: true
+hassio_role: manager
+privileged:
+  - NET_ADMIN
+  - SYS_ADMIN
+  - SYS_NICE
+
+apparmor: false
+host_network: true
+host_pid: true
+
+devices:
+  - /dev/net/tun:/dev/net/tun:rwm
+
+options:
+  network_id: ""
+  local_subnet: "192.168.1.0/24"
+  auth_token: ""
+  enable_gateway: true
+  auto_authorize: false
+  log_level: "info"
+
+schema:
+  network_id: "str"
+  local_subnet: "str"
+  auth_token: "str?"
+  enable_gateway: "bool"
+  auto_authorize: "bool"
+  log_level: "list(trace|debug|info|warn|error|fatal)?"
+
+image: "ghcr.io/yourusername/zerotier-gateway-{arch}"
+
+ports:
+  9993/udp: 9993
+
+panel_icon: "mdi:vpn"
+panel_title: "Zerotier Gateway"
+panel_admin: false
+
+webui: "http://[HOST]:[PORT:8099]"
+```
+
+## zerotier-gateway/Dockerfile
+```dockerfile
+ARG BUILD_FROM=ghcr.io/hassio-addons/base:15.0.1
+FROM $BUILD_FROM
+
+# Set shell
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Install packages
+RUN \
+    apk add --no-cache \
+        bash=5.2.15-r5 \
+        curl=8.5.0-r0 \
+        jq=1.7.1-r0 \
+        iptables=1.8.10-r3 \
+        ip6tables=1.8.10-r3 \
+        iproute2=6.6.0-r0 \
+        procps=4.0.4-r0 \
+        python3=3.11.8-r0 \
+        py3-pip=23.3.1-r0 \
+        nginx=1.24.0-r15
+
+# Install Zerotier
+RUN \
+    curl -s https://install.zerotier.com | sh \
+    && mkdir -p /var/lib/zerotier-one
+
+# Install web interface dependencies
+RUN pip3 install --no-cache-dir flask==2.3.3 requests==2.31.0
+
+# Copy root filesystem
+COPY rootfs /
+
+# Set permissions
+RUN chmod a+x /usr/bin/*.sh \
+    && chmod a+x /etc/services.d/*/run \
+    && chmod a+x /etc/services.d/*/finish \
+    && chmod a+x /etc/cont-init.d/*.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
+    CMD zerotier-cli info || exit 1
+
+# Labels
+LABEL \
+    io.hass.name="Zerotier Gateway" \
+    io.hass.description="Zerotier VPN with gateway functionality" \
+    io.hass.arch="${BUILD_ARCH}" \
+    io.hass.type="addon" \
+    io.hass.version="${BUILD_VERSION}" \
+    maintainer="Your Name <your.email@example.com>" \
+    org.opencontainers.image.title="Zerotier Gateway" \
+    org.opencontainers.image.description="Zerotier VPN with gateway functionality" \
+    org.opencontainers.image.source="https://github.com/yourusername/ha-zerotier-gateway-addon" \
+    org.opencontainers.image.licenses="MIT"
+
+WORKDIR /
+```
+
+## zerotier-gateway/rootfs/etc/cont-init.d/00-init-system.sh
+```bash
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Initializing Zerotier Gateway Add-on..."
+
+# Create necessary directories
+mkdir -p /var/lib/zerotier-one
+mkdir -p /tmp/zerotier-gateway
+mkdir -p /share/zerotier-gateway
+
+# Set up TUN device
+if [ ! -c /dev/net/tun ]; then
+    bashio::log.info "Creating TUN device..."
+    mkdir -p /dev/net
+    mknod /dev/net/tun c 10 200
+    chmod 600 /dev/net/tun
+fi
+
+# Enable IP forwarding
+bashio::log.info "Enabling IP forwarding..."
+echo 1 > /proc/sys/net/ipv4/ip_forward
+echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+
+# Load configuration
+NETWORK_ID=$(bashio::config 'network_id')
+LOCAL_SUBNET=$(bashio::config 'local_subnet')
+AUTH_TOKEN=$(bashio::config 'auth_token')
+ENABLE_GATEWAY=$(bashio::config 'enable_gateway')
+AUTO_AUTHORIZE=$(bashio::config 'auto_authorize')
+
+# Validate required config
+if bashio::var.is_empty "${NETWORK_ID}"; then
+    bashio::exit.nok "Network ID is required!"
+fi
+
+if [[ ${#NETWORK_ID} != 16 ]]; then
+    bashio::exit.nok "Network ID must be exactly 16 characters!"
+fi
+
+# Save config for other scripts
+cat > /tmp/zerotier-gateway/config.json << EOF
+{
+    "network_id": "${NETWORK_ID}",
+    "local_subnet": "${LOCAL_SUBNET}",
+    "auth_token": "${AUTH_TOKEN}",
+    "enable_gateway": ${ENABLE_GATEWAY},
+    "auto_authorize": ${AUTO_AUTHORIZE}
+}
+EOF
+
+bashio::log.info "System initialization completed"
+```
+
+## zerotier-gateway/rootfs/etc/cont-init.d/01-setup-zerotier.sh
+```bash
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Setting up Zerotier service..."
+
+# Load configuration
+CONFIG_FILE="/tmp/zerotier-gateway/config.json"
+NETWORK_ID=$(jq -r '.network_id' $CONFIG_FILE)
+AUTH_TOKEN=$(jq -r '.auth_token' $CONFIG_FILE)
+
+# Set up auth token if provided
+if [[ "${AUTH_TOKEN}" != "null" && "${AUTH_TOKEN}" != "" ]]; then
+    bashio::log.info "Configuring auth token..."
+    echo "${AUTH_TOKEN}" > /var/lib/zerotier-one/authtoken.secret
+    chmod 600 /var/lib/zerotier-one/authtoken.secret
+fi
+
+# Ensure zerotier directories have correct permissions
+chown -R root:root /var/lib/zerotier-one
+chmod 755 /var/lib/zerotier-one
+
+bashio::log.info "Zerotier setup completed"
+bashio::log.info "Network ID: ${NETWORK_ID}"
+```
+
+## zerotier-gateway/rootfs/etc/services.d/zerotier/run
+```bash
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Starting Zerotier One daemon..."
+
+# Start zerotier-one in foreground
+exec zerotier-one
+```
+
+## zerotier-gateway/rootfs/etc/services.d/zerotier/finish
+```bash
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Zerotier service stopped"
+```
+
+## zerotier-gateway/rootfs/etc/services.d/gateway/run
+```bash
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Starting Gateway Manager..."
+
+# Wait for zerotier to start
+sleep 10
+
+# Start gateway manager
+exec /usr/bin/gateway-manager.sh
+```
+
+## zerotier-gateway/rootfs/etc/services.d/gateway/finish
+```bash
+#!/usr/bin/with-contenv bashio
+
+bashio::log.info "Gateway Manager stopped"
+```
+
+## zerotier-gateway/rootfs/usr/bin/zerotier-setup.sh
+```bash
+#!/bin/bash
+
+CONFIG_FILE="/tmp/zerotier-gateway/config.json"
+NETWORK_ID=$(jq -r '.network_id' $CONFIG_FILE)
+AUTO_AUTHORIZE=$(jq -r '.auto_authorize' $CONFIG_FILE)
+
+bashio::log.info "Joining Zerotier network: ${NETWORK_ID}"
+
+# Join the network
+zerotier-cli join "${NETWORK_ID}"
+
+# Wait for network to be available
+timeout=120
+while [ $timeout -gt 0 ]; do
+    if zerotier-cli listnetworks | grep -q "${NETWORK_ID}"; then
+        STATUS=$(zerotier-cli listnetworks | grep "${NETWORK_ID}" | awk '{print $6}')
+        if [[ "$STATUS" == "OK" ]]; then
+            bashio::log.info "Successfully joined network!"
+            break
+        fi
+    fi
+    sleep 2
+    timeout=$((timeout-2))
+done
+
+if [ $timeout -le 0 ]; then
+    bashio::log.warning "Network join timed out. Check Zerotier Central to authorize this device."
+fi
+
+# Get network info
+NETWORK_INFO=$(zerotier-cli listnetworks | grep "${NETWORK_ID}")
+if [[ -n "$NETWORK_INFO" ]]; then
+    ZT_IP=$(echo "$NETWORK_INFO" | awk '{print $9}' | cut -d'/' -f1)
+    ZT_DEVICE=$(echo "$NETWORK_INFO" | awk '{print $8}')
+    
+    bashio::log.info "Zerotier IP: ${ZT_IP}"
+    bashio::log.info "Zerotier Device: ${ZT_DEVICE}"
+    
+    # Save network info
+    cat > /tmp/zerotier-gateway/network.json << EOF
+{
+    "ip": "${ZT_IP}",
+    "device": "${ZT_DEVICE}",
+    "network_id": "${NETWORK_ID}"
+}
+EOF
+fi
+```
+
+## zerotier-gateway/rootfs/usr/bin/gateway-manager.sh
+```bash
+#!/bin/bash
+
+CONFIG_FILE="/tmp/zerotier-gateway/config.json"
+NETWORK_FILE="/tmp/zerotier-gateway/network.json"
+
+# Load configuration
+ENABLE_GATEWAY=$(jq -r '.enable_gateway' $CONFIG_FILE)
+LOCAL_SUBNET=$(jq -r '.local_subnet' $CONFIG_FILE)
+
+# Wait for zerotier to be ready and join network
+/usr/bin/zerotier-setup.sh
+
+# Setup gateway if enabled
+if [[ "$ENABLE_GATEWAY" == "true" ]]; then
+    bashio::log.info "Setting up gateway functionality..."
+    
+    # Wait for network file to be created
+    timeout=30
+    while [ ! -f "$NETWORK_FILE" ] && [ $timeout -gt 0 ]; do
+        sleep 1
+        timeout=$((timeout-1))
+    done
+    
+    if [ ! -f "$NETWORK_FILE" ]; then
+        bashio::log.error "Network information not available, cannot setup gateway"
+        exit 1
+    fi
+    
+    # Load network info
+    ZT_DEVICE=$(jq -r '.device' $NETWORK_FILE)
+    ZT_IP=$(jq -r '.ip' $NETWORK_FILE)
+    
+    if [[ "$ZT_DEVICE" != "null" && "$ZT_IP" != "null" ]]; then
+        # Get default interface
+        DEFAULT_IF=$(ip route | grep default | awk '{print $5}' | head -n1)
+        
+        bashio::log.info "Setting up iptables rules..."
+        bashio::log.info "Zerotier device: ${ZT_DEVICE}"
+        bashio::log.info "Default interface: ${DEFAULT_IF}"
+        bashio::log.info "Local subnet: ${LOCAL_SUBNET}"
+        
+        # Clear existing rules
+        iptables -t nat -F POSTROUTING 2>/dev/null || true
+        iptables -F FORWARD 2>/dev/null || true
+        
+        # Set up NAT and forwarding rules
+        iptables -t nat -A POSTROUTING -s ${ZT_IP}/24 -d ${LOCAL_SUBNET} -j MASQUERADE
+        iptables -t nat -A POSTROUTING -s ${ZT_IP}/24 -o ${DEFAULT_IF} -j MASQUERADE
+        
+        iptables -A FORWARD -i ${ZT_DEVICE} -o ${DEFAULT_IF} -j ACCEPT
+        iptables -A FORWARD -i ${DEFAULT_IF} -o ${ZT_DEVICE} -m state --state RELATED,ESTABLISHED -j ACCEPT
+        iptables -A FORWARD -i ${ZT_DEVICE} -d ${LOCAL_SUBNET} -j ACCEPT
+        iptables -A FORWARD -s ${LOCAL_SUBNET} -o ${ZT_DEVICE} -j ACCEPT
+        
+        bashio::log.info "Gateway setup completed!"
+        bashio::log.info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        bashio::log.info "🎉 GATEWAY SETUP COMPLETE!"
+        bashio::log.info ""
+        bashio::log.info "⚠️  IMPORTANT: You must configure a route in Zerotier Central:"
+        bashio::log.info ""
+        bashio::log.info "1. Go to https://my.zerotier.com"
+        bashio::log.info "2. Click on your network"
+        bashio::log.info "3. Scroll to 'Members' and authorize this device (check Auth?)"
+        bashio::log.info "4. Scroll up to 'Settings' → 'Managed Routes'"
+        bashio::log.info "5. Click 'Add Route' and enter:"
+        bashio::log.info "   📍 Destination: ${LOCAL_SUBNET}"
+        bashio::log.info "   📍 Via: ${ZT_IP} ← COPY THIS EXACTLY!"
+        bashio::log.info "6. Click the checkmark to save"
+        bashio::log.info ""
+        bashio::log.info "Without this route, the gateway won't work!"
+        bashio::log.info "Full documentation: See the DOCS tab in the add-on"
+        bashio::log.info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    else
+        bashio::log.error "Could not get Zerotier network information"
+    fi
+fi
+
+# Keep the service running and monitor
+while true; do
+    # Check if zerotier is still running
+    if ! pgrep zerotier-one > /dev/null; then
+        bashio::log.error "Zerotier daemon has stopped!"
+        exit 1
+    fi
+    
+    # Check network status every 30 seconds
+    sleep 30
+done
+```
+
+## zerotier-gateway/README.md
+```markdown
+# Home Assistant Zerotier Gateway Add-on
+
+Connect your Home Assistant to a Zerotier network and enable gateway functionality to access your entire local network from anywhere!
+
+## Features
+
+- 🌐 **Easy Zerotier Connection**: Join any Zerotier network with just the Network ID
+- 🚪 **Gateway Functionality**: Access all devices on your local network through Zerotier
+- 🔧 **Simple Configuration**: Set up everything through the Home Assistant UI
+- 🔄 **Auto-Start**: Automatically connects on boot
+- 📊 **Status Monitoring**: Built-in health checks and logging
+
+## Installation
+
+1. Add this repository to your Home Assistant Add-on Store:
+   - Go to **Supervisor** → **Add-on Store** → **⋮** → **Repositories**
+   - Add: `https://github.com/yourusername/ha-zerotier-gateway-addon`
+
+2. Install the "Zerotier Gateway" add-on
+
+3. Configure the add-on with your Zerotier Network ID
+
+4. Start the add-on
+
+5. Check the logs for setup instructions
+
+## Configuration
+
+| Option | Required | Description | Default |
+|--------|----------|-------------|---------|
+| `network_id` | Yes | Your 16-character Zerotier Network ID | - |
+| `local_subnet` | No | Your local network subnet | `192.168.1.0/24` |
+| `auth_token` | No | Zerotier auth token (optional) | - |
+| `enable_gateway` | No | Enable gateway functionality | `true` |
+| `auto_authorize` | No | Auto-authorize device (needs auth token) | `false` |
+| `log_level` | No | Log level | `info` |
+
+## Post-Installation Steps
+
+After starting the add-on:
+
+1. **Check the add-on logs** to find your Zerotier IP address (you'll need this!)
+
+2. **Go to Zerotier Central**
+   - Navigate to [my.zerotier.com](https://my.zerotier.com)
+   - Click on your network
+
+3. **Authorize your device**
+   - Scroll to the "Members" section
+   - Find your Home Assistant device
+   - Check the **Auth?** checkbox
+   - Wait for an IP to be assigned
+
+4. **Configure the route** (IMPORTANT!)
+   - In Zerotier Central, scroll to "Settings"
+   - Find "Managed Routes"
+   - Click "Add Route"
+   - Configure:
+     - **Destination**: Your local subnet (e.g., `192.168.1.0/24`)
+     - **Via**: The Zerotier IP from step 1
+   - Click the checkmark to save
+
+5. **Verify it's working**
+   - The route should show as active
+   - You can now access local devices through Zerotier!
+
+### Route Configuration Example
+
+![Route Configuration](https://github.com/yourusername/ha-zerotier-gateway-addon/blob/main/images/route-config.png)
+
+> **Note**: The "Via" IP must exactly match the Zerotier IP shown in your add-on logs!
+
+## Support
+
+If you have issues, please check the add-on logs first. Common problems:
+- Device not appearing: Check your Network ID is correct
+- Can't access local devices: Make sure the route is added in Zerotier Central
+- Gateway not working: Check that your local subnet is configured correctly
+```
+
+## Installation Instructions:
+
+### 1. Create GitHub Repository
+```bash
+git clone https://github.com/yourusername/ha-zerotier-gateway-addon.git
+cd ha-zerotier-gateway-addon
+# Copy all files from artifact
+git add .
+git commit -m "Initial release"
+git push
+```
+
+### 2. Set up GitHub Actions (Optional)
+Create `.github/workflows/build.yml` for automatic Docker image building.
+
+### 3. Install in Home Assistant
+1. **Supervisor** → **Add-on Store** → **⋮** → **Repositories**
+2. Add: `https://github.com/yourusername/ha-zerotier-gateway-addon`
+3. Install "Zerotier Gateway"
+4. Configure with your Network ID
+5. Start the add-on
+
+### 4. Complete Setup
+1. Check add-on logs for your Zerotier IP
+2. Go to my.zerotier.com and authorize the device
+3. Add route: `192.168.1.0/24 via <zerotier-ip>`
+
+## What You Get:
+- ✅ **One-click installation** through Home Assistant GUI
+- ✅ **Automatic Zerotier installation** and configuration
+- ✅ **Gateway functionality** with automatic iptables setup
+- ✅ **Clear setup instructions** in the logs
+- ✅ **Persistent configuration** across reboots
+- ✅ **Health monitoring** and automatic restart
+
+This is the cleanest solution - users just add your repository URL and install like any other add-on!
+```
