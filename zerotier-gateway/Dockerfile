@@ -24,49 +24,44 @@ RUN \
     ARCH="${BUILD_ARCH}" && \
     echo "Installing for architecture: $ARCH" && \
     # For now, create a functional placeholder that allows testing
-    cat > /usr/sbin/zerotier-one << 'SCRIPT' && \
-#!/bin/sh
-# Zerotier placeholder script
-case "$1" in
-    -U)
-        echo "[Zerotier] Starting placeholder daemon (real Zerotier coming soon)..."
-        # Create fake network state
-        mkdir -p /var/lib/zerotier-one/networks.d
-        while true; do
-            sleep 60
-        done
-        ;;
-    info)
-        echo "200 info 1234567890abcdef 1.12.2 ONLINE"
-        ;;
-    listnetworks)
-        if [ -f /tmp/zerotier-gateway/network.json ]; then
-            NETWORK_ID=$(jq -r '.network_id' /tmp/zerotier-gateway/config.json 2>/dev/null || echo "")
-            if [ -n "$NETWORK_ID" ]; then
-                echo "200 listnetworks $NETWORK_ID - - OK PRIVATE zt0 00:00:00:00:00:00 10.10.10.10/24"
-            else
-                echo "200 listnetworks <none>"
-            fi
-        else
-            echo "200 listnetworks <none>"
-        fi
-        ;;
-    join)
-        shift
-        echo "200 join $1 OK"
-        mkdir -p /var/lib/zerotier-one/networks.d
-        touch "/var/lib/zerotier-one/networks.d/$1.conf"
-        ;;
-    leave)
-        shift
-        echo "200 leave $1 OK"
-        rm -f "/var/lib/zerotier-one/networks.d/$1.conf"
-        ;;
-    *)
-        echo "200 zerotier-cli 1.12.2 placeholder"
-        ;;
-esac
-SCRIPT
+    printf '#!/bin/sh\n' > /usr/sbin/zerotier-one && \
+    printf '# Zerotier placeholder script\n' >> /usr/sbin/zerotier-one && \
+    printf 'case "$1" in\n' >> /usr/sbin/zerotier-one && \
+    printf '    -U)\n' >> /usr/sbin/zerotier-one && \
+    printf '        echo "[Zerotier] Starting placeholder daemon (real Zerotier coming soon)..."\n' >> /usr/sbin/zerotier-one && \
+    printf '        mkdir -p /var/lib/zerotier-one/networks.d\n' >> /usr/sbin/zerotier-one && \
+    printf '        while true; do sleep 60; done\n' >> /usr/sbin/zerotier-one && \
+    printf '        ;;\n' >> /usr/sbin/zerotier-one && \
+    printf '    info)\n' >> /usr/sbin/zerotier-one && \
+    printf '        echo "200 info 1234567890abcdef 1.12.2 ONLINE"\n' >> /usr/sbin/zerotier-one && \
+    printf '        ;;\n' >> /usr/sbin/zerotier-one && \
+    printf '    listnetworks)\n' >> /usr/sbin/zerotier-one && \
+    printf '        if [ -f /tmp/zerotier-gateway/config.json ]; then\n' >> /usr/sbin/zerotier-one && \
+    printf '            NETWORK_ID=$(jq -r .network_id /tmp/zerotier-gateway/config.json 2>/dev/null || echo "")\n' >> /usr/sbin/zerotier-one && \
+    printf '            if [ -n "$NETWORK_ID" ]; then\n' >> /usr/sbin/zerotier-one && \
+    printf '                echo "200 listnetworks $NETWORK_ID - - OK PRIVATE zt0 00:00:00:00:00:00 10.10.10.10/24"\n' >> /usr/sbin/zerotier-one && \
+    printf '            else\n' >> /usr/sbin/zerotier-one && \
+    printf '                echo "200 listnetworks <none>"\n' >> /usr/sbin/zerotier-one && \
+    printf '            fi\n' >> /usr/sbin/zerotier-one && \
+    printf '        else\n' >> /usr/sbin/zerotier-one && \
+    printf '            echo "200 listnetworks <none>"\n' >> /usr/sbin/zerotier-one && \
+    printf '        fi\n' >> /usr/sbin/zerotier-one && \
+    printf '        ;;\n' >> /usr/sbin/zerotier-one && \
+    printf '    join)\n' >> /usr/sbin/zerotier-one && \
+    printf '        shift\n' >> /usr/sbin/zerotier-one && \
+    printf '        echo "200 join $1 OK"\n' >> /usr/sbin/zerotier-one && \
+    printf '        mkdir -p /var/lib/zerotier-one/networks.d\n' >> /usr/sbin/zerotier-one && \
+    printf '        touch "/var/lib/zerotier-one/networks.d/$1.conf"\n' >> /usr/sbin/zerotier-one && \
+    printf '        ;;\n' >> /usr/sbin/zerotier-one && \
+    printf '    leave)\n' >> /usr/sbin/zerotier-one && \
+    printf '        shift\n' >> /usr/sbin/zerotier-one && \
+    printf '        echo "200 leave $1 OK"\n' >> /usr/sbin/zerotier-one && \
+    printf '        rm -f "/var/lib/zerotier-one/networks.d/$1.conf"\n' >> /usr/sbin/zerotier-one && \
+    printf '        ;;\n' >> /usr/sbin/zerotier-one && \
+    printf '    *)\n' >> /usr/sbin/zerotier-one && \
+    printf '        echo "200 zerotier-cli 1.12.2 placeholder"\n' >> /usr/sbin/zerotier-one && \
+    printf '        ;;\n' >> /usr/sbin/zerotier-one && \
+    printf 'esac\n' >> /usr/sbin/zerotier-one && \
     chmod +x /usr/sbin/zerotier-one && \
     ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
     ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool
