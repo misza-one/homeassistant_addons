@@ -1,7 +1,7 @@
 ARG BUILD_FROM
 
 # Build stage for Zerotier
-FROM alpine:3.19 AS builder
+FROM alpine:latest AS builder
 
 RUN apk add --no-cache \
     build-base \
