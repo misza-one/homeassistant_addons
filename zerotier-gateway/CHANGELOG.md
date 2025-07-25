@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0 - 2025-07-25
+
+### Changed
+- Build Zerotier from source for maximum compatibility
+- This ensures we get a working binary on all architectures
+- Increased build time but guaranteed to work
+
+### Added
+- Full build toolchain for compiling Zerotier
+- Support for all architectures through source compilation
+
 ## 1.3.0 - 2025-07-25
 
 ### Added
