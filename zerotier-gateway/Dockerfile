@@ -52,35 +52,20 @@ RUN \
     # Method 3: Create a working daemon that logs properly
     if [ ! -f /usr/sbin/zerotier-one ] || [ ! -x /usr/sbin/zerotier-one ]; then \
         echo "WARNING: Zerotier binary not found or not executable, creating logging daemon" && \
-        cat > /usr/sbin/zerotier-one << 'EOF'
-#!/bin/sh
-if [ "$1" = "-U" ]; then
-    echo "[Zerotier Placeholder] Starting in daemon mode..."
-    echo "[Zerotier Placeholder] Real Zerotier installation failed during build"
-    echo "[Zerotier Placeholder] Check GitHub Actions logs for details"
-    # Keep running so service doesn't restart
-    while true; do
-        sleep 3600
-    done
-else
-    # Respond to CLI commands
-    case "$*" in
-        *info*)
-            echo "200 info 1234567890abcdef 1.12.2 OFFLINE"
-            ;;
-        *listnetworks*)
-            echo "200 listnetworks <none>"
-            ;;
-        *join*)
-            echo "200 join OK"
-            echo "[Zerotier Placeholder] Cannot actually join network - not a real Zerotier installation"
-            ;;
-        *)
-            echo "200 placeholder"
-            ;;
-    esac
-fi
-EOF
+        printf '#!/bin/sh\n' > /usr/sbin/zerotier-one && \
+        printf 'if [ "$1" = "-U" ]; then\n' >> /usr/sbin/zerotier-one && \
+        printf '    echo "[Zerotier Placeholder] Starting in daemon mode..."\n' >> /usr/sbin/zerotier-one && \
+        printf '    echo "[Zerotier Placeholder] Real Zerotier installation failed during build"\n' >> /usr/sbin/zerotier-one && \
+        printf '    echo "[Zerotier Placeholder] Check GitHub Actions logs for details"\n' >> /usr/sbin/zerotier-one && \
+        printf '    while true; do sleep 3600; done\n' >> /usr/sbin/zerotier-one && \
+        printf 'else\n' >> /usr/sbin/zerotier-one && \
+        printf '    case "$*" in\n' >> /usr/sbin/zerotier-one && \
+        printf '        *info*) echo "200 info 1234567890abcdef 1.12.2 OFFLINE" ;;\n' >> /usr/sbin/zerotier-one && \
+        printf '        *listnetworks*) echo "200 listnetworks <none>" ;;\n' >> /usr/sbin/zerotier-one && \
+        printf '        *join*) echo "200 join OK" && echo "[Zerotier Placeholder] Cannot actually join network" ;;\n' >> /usr/sbin/zerotier-one && \
+        printf '        *) echo "200 placeholder" ;;\n' >> /usr/sbin/zerotier-one && \
+        printf '    esac\n' >> /usr/sbin/zerotier-one && \
+        printf 'fi\n' >> /usr/sbin/zerotier-one; \
     fi && \
     chmod +x /usr/sbin/zerotier-one && \
     ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
