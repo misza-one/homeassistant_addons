@@ -4,7 +4,7 @@ FROM $BUILD_FROM
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install packages
+# Install packages and build dependencies
 RUN \
     apk add --no-cache \
         bash \
@@ -14,10 +14,21 @@ RUN \
         ip6tables \
         iproute2 \
         procps \
-        zerotier-one
+        make \
+        g++ \
+        linux-headers
 
-# Create Zerotier directory
-RUN mkdir -p /var/lib/zerotier-one
+# Build and install Zerotier
+RUN \
+    cd /tmp && \
+    curl -Lo zerotier.tar.gz https://github.com/zerotier/ZeroTierOne/archive/refs/tags/1.12.2.tar.gz && \
+    tar -xzf zerotier.tar.gz && \
+    cd ZeroTierOne-1.12.2 && \
+    make -j$(nproc) && \
+    make install && \
+    cd / && \
+    rm -rf /tmp/zerotier* /tmp/ZeroTierOne* && \
+    mkdir -p /var/lib/zerotier-one
 
 # Install web interface dependencies (removed for now - not needed for basic functionality)
 # RUN pip3 install --no-cache-dir flask requests
