@@ -45,9 +45,15 @@ if [[ "$ENABLE_GATEWAY" == "true" ]]; then
         bashio::log.info "Default interface: ${DEFAULT_IF}"
         bashio::log.info "Local subnet: ${LOCAL_SUBNET}"
         
-        # Clear existing rules
-        iptables -t nat -F POSTROUTING 2>/dev/null || true
-        iptables -F FORWARD 2>/dev/null || true
+        # Clear only our specific rules (don't flush everything)
+        # Remove previous zerotier-related rules if they exist
+        iptables -t nat -D POSTROUTING -s ${ZT_IP}/24 -d ${LOCAL_SUBNET} -j MASQUERADE 2>/dev/null || true
+        iptables -t nat -D POSTROUTING -s ${ZT_IP}/24 -o ${DEFAULT_IF} -j MASQUERADE 2>/dev/null || true
+        
+        iptables -D FORWARD -i ${ZT_DEVICE} -o ${DEFAULT_IF} -j ACCEPT 2>/dev/null || true
+        iptables -D FORWARD -i ${DEFAULT_IF} -o ${ZT_DEVICE} -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+        iptables -D FORWARD -i ${ZT_DEVICE} -d ${LOCAL_SUBNET} -j ACCEPT 2>/dev/null || true
+        iptables -D FORWARD -s ${LOCAL_SUBNET} -o ${ZT_DEVICE} -j ACCEPT 2>/dev/null || true
         
         # Set up NAT and forwarding rules
         iptables -t nat -A POSTROUTING -s ${ZT_IP}/24 -d ${LOCAL_SUBNET} -j MASQUERADE
