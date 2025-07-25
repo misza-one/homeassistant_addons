@@ -29,35 +29,33 @@ RUN echo "@edge http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repo
     echo "@edgecommunity http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
     echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
     apk update && \
-    apk add --no-cache zerotier-one@testing || \
-    apk add --no-cache zerotier-one@edgecommunity || \
-    apk add --no-cache zerotier-one@edge || \
-    (echo "WARNING: Zerotier package not found, creating functional placeholder" && \
-     cat > /usr/sbin/zerotier-one << 'EOF'
-#!/bin/sh
-case "$1" in
-  -U)
-    echo "Starting Zerotier placeholder daemon..."
-    while true; do sleep 3600; done
-    ;;
-  info)
-    echo "200 info 1234567890abcdef 1.12.2 OFFLINE"
-    ;;
-  listnetworks)
-    echo "200 listnetworks"
-    ;;
-  join)
-    echo "200 join OK"
-    ;;
-  *)
-    echo "200 zerotier-one placeholder"
-    ;;
-esac
-EOF
-     chmod +x /usr/sbin/zerotier-one) && \
+    (apk add --no-cache zerotier-one@testing || \
+     apk add --no-cache zerotier-one@edgecommunity || \
+     apk add --no-cache zerotier-one@edge || \
+     (echo "WARNING: Zerotier package not found, creating functional placeholder" && \
+      printf '#!/bin/sh\n' > /usr/sbin/zerotier-one && \
+      printf 'case "$1" in\n' >> /usr/sbin/zerotier-one && \
+      printf '  -U)\n' >> /usr/sbin/zerotier-one && \
+      printf '    echo "Starting Zerotier placeholder daemon..."\n' >> /usr/sbin/zerotier-one && \
+      printf '    while true; do sleep 3600; done\n' >> /usr/sbin/zerotier-one && \
+      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
+      printf '  info)\n' >> /usr/sbin/zerotier-one && \
+      printf '    echo "200 info 1234567890abcdef 1.12.2 OFFLINE"\n' >> /usr/sbin/zerotier-one && \
+      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
+      printf '  listnetworks)\n' >> /usr/sbin/zerotier-one && \
+      printf '    echo "200 listnetworks"\n' >> /usr/sbin/zerotier-one && \
+      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
+      printf '  join)\n' >> /usr/sbin/zerotier-one && \
+      printf '    echo "200 join OK"\n' >> /usr/sbin/zerotier-one && \
+      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
+      printf '  *)\n' >> /usr/sbin/zerotier-one && \
+      printf '    echo "200 zerotier-one placeholder"\n' >> /usr/sbin/zerotier-one && \
+      printf '    ;;\n' >> /usr/sbin/zerotier-one && \
+      printf 'esac\n' >> /usr/sbin/zerotier-one && \
+      chmod +x /usr/sbin/zerotier-one)) && \
     # Create symlinks if they don't exist
-    [ -L /usr/sbin/zerotier-cli ] || ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
-    [ -L /usr/sbin/zerotier-idtool ] || ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool
+    ([ -L /usr/sbin/zerotier-cli ] || ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli) && \
+    ([ -L /usr/sbin/zerotier-idtool ] || ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool)
 
 # Labels
 LABEL \
