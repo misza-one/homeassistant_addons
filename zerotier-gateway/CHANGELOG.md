@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.1 - 2025-07-25
+
+### Fixed
+- Removed IP forwarding via /proc (read-only in container)
+- Fixed config.json file creation and dependencies
+- Added fallback configuration loading
+- Fixed all startup script errors
+- Improved error handling
+
 ## 1.2.0 - 2024-01-25
 
 ### Added
