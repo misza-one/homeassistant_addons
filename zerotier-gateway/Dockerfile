@@ -13,18 +13,15 @@ RUN \
         iptables \
         ip6tables \
         iproute2 \
-        procps \
-        python3 \
-        py3-pip \
-        nginx
+        procps
 
 # Install Zerotier
 RUN \
     curl -s https://install.zerotier.com | sh \
     && mkdir -p /var/lib/zerotier-one
 
-# Install web interface dependencies
-RUN pip3 install --no-cache-dir flask==2.3.3 requests==2.31.0
+# Install web interface dependencies (removed for now - not needed for basic functionality)
+# RUN pip3 install --no-cache-dir flask requests
 
 # Copy root filesystem
 COPY rootfs /

@@ -52,5 +52,3 @@ ports:
 panel_icon: "mdi:vpn"
 panel_title: "Zerotier Gateway"
 panel_admin: false
-
-webui: "http://[HOST]:[PORT:8099]"
