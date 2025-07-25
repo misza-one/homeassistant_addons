@@ -1,3 +1,5 @@
+ARG BUILD_FROM
+
 # Build stage for Zerotier
 FROM alpine:3.19 AS builder
 
@@ -14,7 +16,6 @@ RUN cd /tmp && \
     strip zerotier-one
 
 # Final stage
-ARG BUILD_FROM
 FROM $BUILD_FROM
 
 # Install required packages
