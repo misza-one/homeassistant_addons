@@ -1,24 +1,7 @@
 ARG BUILD_FROM
-
-# Build stage for Zerotier
-FROM alpine:latest AS builder
-
-RUN apk add --no-cache \
-    build-base \
-    linux-headers \
-    git \
-    cmake
-
-RUN cd /tmp && \
-    git clone --depth 1 --branch 1.12.2 https://github.com/zerotier/ZeroTierOne.git && \
-    cd ZeroTierOne && \
-    make -j$(nproc) && \
-    strip zerotier-one
-
-# Final stage
 FROM $BUILD_FROM
 
-# Install required packages
+# Install all packages including build dependencies
 RUN \
     apk add --no-cache \
         bash \
@@ -29,16 +12,24 @@ RUN \
         iproute2 \
         procps \
         libstdc++ \
-        libgcc
+        libgcc \
+        build-base \
+        linux-headers \
+        git \
+        cmake
 
-# Copy Zerotier binary from builder
-COPY --from=builder /tmp/ZeroTierOne/zerotier-one /usr/sbin/zerotier-one
-
-# Set up Zerotier
+# Build and install Zerotier
 RUN \
-    chmod +x /usr/sbin/zerotier-one && \
-    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
-    ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool && \
+    cd /tmp && \
+    git clone --depth 1 --branch 1.12.2 https://github.com/zerotier/ZeroTierOne.git && \
+    cd ZeroTierOne && \
+    make -j$(nproc) && \
+    make install && \
+    cd / && \
+    rm -rf /tmp/ZeroTierOne && \
+    # Remove build dependencies to reduce image size
+    apk del build-base linux-headers git cmake && \
+    # Create directory
     mkdir -p /var/lib/zerotier-one
 
 # Copy root filesystem
