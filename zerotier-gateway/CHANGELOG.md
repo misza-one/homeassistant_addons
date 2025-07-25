@@ -1,5 +1,22 @@
 # Changelog
 
+## 4.0.0 - 2025-07-26
+
+### Added
+- **REAL ZEROTIER!** Built from source v1.14.2
+- Compiles ZeroTier during Docker build for each architecture
+- Full ZeroTier functionality - no more placeholder
+
+### Changed
+- Complete rewrite of Dockerfile to build from source
+- Added Rust and build dependencies for compilation
+- Major version bump to indicate real functionality
+
+### Technical
+- Multi-stage Docker build to keep image size reasonable
+- Builds with optimization flags for performance
+- Tested and working on amd64
+
 ## 2.0.0 - 2025-07-25
 
 ### Changed
