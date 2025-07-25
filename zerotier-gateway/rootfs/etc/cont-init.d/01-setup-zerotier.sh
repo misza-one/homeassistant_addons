@@ -2,10 +2,21 @@
 
 bashio::log.info "Setting up Zerotier service..."
 
-# Load configuration
+# Wait for config file from previous script
 CONFIG_FILE="/tmp/zerotier-gateway/config.json"
-NETWORK_ID=$(jq -r '.network_id' $CONFIG_FILE)
-AUTH_TOKEN=$(jq -r '.auth_token' $CONFIG_FILE)
+if [ ! -f "$CONFIG_FILE" ]; then
+    bashio::log.error "Config file not found. Waiting for initialization..."
+    sleep 2
+fi
+
+# Load configuration directly from bashio if file doesn't exist
+if [ -f "$CONFIG_FILE" ]; then
+    NETWORK_ID=$(jq -r '.network_id' $CONFIG_FILE)
+    AUTH_TOKEN=$(jq -r '.auth_token' $CONFIG_FILE)
+else
+    NETWORK_ID=$(bashio::config 'network_id')
+    AUTH_TOKEN=$(bashio::config 'auth_token')
+fi
 
 # Set up auth token if provided
 if [[ "${AUTH_TOKEN}" != "null" && "${AUTH_TOKEN}" != "" ]]; then

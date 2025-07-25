@@ -15,10 +15,8 @@ if [ ! -c /dev/net/tun ]; then
     chmod 600 /dev/net/tun
 fi
 
-# Enable IP forwarding
-bashio::log.info "Enabling IP forwarding..."
-echo 1 > /proc/sys/net/ipv4/ip_forward
-echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+# Enable IP forwarding (handled by iptables rules instead due to read-only /proc)
+bashio::log.info "IP forwarding will be handled by iptables rules..."
 
 # Load configuration
 NETWORK_ID=$(bashio::config 'network_id')

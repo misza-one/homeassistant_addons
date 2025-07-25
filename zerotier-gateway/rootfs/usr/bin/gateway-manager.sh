@@ -4,8 +4,14 @@ CONFIG_FILE="/tmp/zerotier-gateway/config.json"
 NETWORK_FILE="/tmp/zerotier-gateway/network.json"
 
 # Load configuration
-ENABLE_GATEWAY=$(jq -r '.enable_gateway' $CONFIG_FILE)
-LOCAL_SUBNET=$(jq -r '.local_subnet' $CONFIG_FILE)
+if [ -f "$CONFIG_FILE" ]; then
+    ENABLE_GATEWAY=$(jq -r '.enable_gateway' $CONFIG_FILE)
+    LOCAL_SUBNET=$(jq -r '.local_subnet' $CONFIG_FILE)
+else
+    # Fallback to bashio config
+    ENABLE_GATEWAY=$(bashio::config 'enable_gateway')
+    LOCAL_SUBNET=$(bashio::config 'local_subnet')
+fi
 
 # Wait for zerotier to be ready and join network
 /usr/bin/zerotier-setup.sh

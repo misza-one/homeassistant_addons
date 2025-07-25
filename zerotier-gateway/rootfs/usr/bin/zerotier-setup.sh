@@ -1,8 +1,16 @@
 #!/bin/bash
 
 CONFIG_FILE="/tmp/zerotier-gateway/config.json"
-NETWORK_ID=$(jq -r '.network_id' $CONFIG_FILE)
-AUTO_AUTHORIZE=$(jq -r '.auto_authorize' $CONFIG_FILE)
+
+# Load configuration
+if [ -f "$CONFIG_FILE" ]; then
+    NETWORK_ID=$(jq -r '.network_id' $CONFIG_FILE)
+    AUTO_AUTHORIZE=$(jq -r '.auto_authorize' $CONFIG_FILE)
+else
+    # Fallback to bashio config
+    NETWORK_ID=$(bashio::config 'network_id')
+    AUTO_AUTHORIZE=$(bashio::config 'auto_authorize')
+fi
 
 bashio::log.info "Joining Zerotier network: ${NETWORK_ID}"
 
