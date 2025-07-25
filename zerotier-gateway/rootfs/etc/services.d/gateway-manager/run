@@ -1,4 +1,0 @@
-#!/usr/bin/with-contenv bashio
-
-# Run the gateway manager
-exec /usr/bin/gateway-manager.sh
