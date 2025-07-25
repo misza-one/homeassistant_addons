@@ -4,7 +4,7 @@ FROM $BUILD_FROM
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install packages and build dependencies
+# Install packages
 RUN \
     apk add --no-cache \
         bash \
@@ -13,21 +13,12 @@ RUN \
         iptables \
         ip6tables \
         iproute2 \
-        procps \
-        make \
-        g++ \
-        linux-headers
+        procps
 
-# Build and install Zerotier
+# Add Zerotier repository and install
 RUN \
-    cd /tmp && \
-    curl -Lo zerotier.tar.gz https://github.com/zerotier/ZeroTierOne/archive/refs/tags/1.12.2.tar.gz && \
-    tar -xzf zerotier.tar.gz && \
-    cd ZeroTierOne-1.12.2 && \
-    make -j$(nproc) && \
-    make install && \
-    cd / && \
-    rm -rf /tmp/zerotier* /tmp/ZeroTierOne* && \
+    echo "@community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
+    apk add --no-cache zerotier-one@community && \
     mkdir -p /var/lib/zerotier-one
 
 # Install web interface dependencies (removed for now - not needed for basic functionality)
