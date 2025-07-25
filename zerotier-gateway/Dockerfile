@@ -1,3 +1,19 @@
+# Build stage for Zerotier
+FROM alpine:3.19 AS builder
+
+RUN apk add --no-cache \
+    build-base \
+    linux-headers \
+    git \
+    cmake
+
+RUN cd /tmp && \
+    git clone --depth 1 --branch 1.12.2 https://github.com/zerotier/ZeroTierOne.git && \
+    cd ZeroTierOne && \
+    make -j$(nproc) && \
+    strip zerotier-one
+
+# Final stage
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
@@ -10,34 +26,19 @@ RUN \
         iptables \
         ip6tables \
         iproute2 \
-        procps
+        procps \
+        libstdc++ \
+        libgcc
 
-# Install Zerotier using official installer with modifications for Alpine
+# Copy Zerotier binary from builder
+COPY --from=builder /tmp/ZeroTierOne/zerotier-one /usr/sbin/zerotier-one
+
+# Set up Zerotier
 RUN \
-    mkdir -p /var/lib/zerotier-one && \
-    # Download and modify the installer for Alpine/Docker
-    curl -s https://install.zerotier.com/ > /tmp/install.sh && \
-    # Remove systemd commands that don't work in Docker
-    sed -i 's/systemctl/#systemctl/g' /tmp/install.sh && \
-    sed -i 's/service zerotier-one/#service zerotier-one/g' /tmp/install.sh && \
-    # Try to run the modified installer
-    bash /tmp/install.sh || true && \
-    # Check if it worked
-    if [ -f /usr/sbin/zerotier-one ]; then \
-        echo "Zerotier installed successfully"; \
-    else \
-        echo "Zerotier installation failed, creating placeholder"; \
-        echo '#!/bin/sh' > /usr/sbin/zerotier-one; \
-        echo 'echo "Zerotier not installed - check build logs"' >> /usr/sbin/zerotier-one; \
-        echo 'if [ "$1" = "-U" ]; then' >> /usr/sbin/zerotier-one; \
-        echo '  while true; do sleep 3600; done' >> /usr/sbin/zerotier-one; \
-        echo 'fi' >> /usr/sbin/zerotier-one; \
-        chmod +x /usr/sbin/zerotier-one; \
-    fi && \
-    # Create symlinks
+    chmod +x /usr/sbin/zerotier-one && \
     ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-cli && \
     ln -sf /usr/sbin/zerotier-one /usr/sbin/zerotier-idtool && \
-    rm -f /tmp/install.sh
+    mkdir -p /var/lib/zerotier-one
 
 # Copy root filesystem
 COPY rootfs /
