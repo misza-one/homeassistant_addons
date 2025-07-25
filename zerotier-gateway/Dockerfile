@@ -4,7 +4,7 @@ FROM $BUILD_FROM
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install packages
+# Install required packages
 RUN \
     apk add --no-cache \
         bash \
@@ -13,16 +13,17 @@ RUN \
         iptables \
         ip6tables \
         iproute2 \
-        procps
+        procps \
+        libstdc++ \
+        libgcc \
+        gpg \
+        gpg-agent
 
-# Add Zerotier repository and install
+# Install ZeroTier
 RUN \
-    echo "@community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
-    apk add --no-cache zerotier-one@community && \
+    curl -s 'https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/doc/contact%40zerotier.com.gpg' | gpg --import && \
+    if z=$(curl -s 'https://install.zerotier.com/' | gpg); then echo "$z" | bash; fi && \
     mkdir -p /var/lib/zerotier-one
-
-# Install web interface dependencies (removed for now - not needed for basic functionality)
-# RUN pip3 install --no-cache-dir flask requests
 
 # Copy root filesystem
 COPY rootfs /
