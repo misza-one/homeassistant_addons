@@ -39,7 +39,7 @@ RUN \
     printf '        if [ -f /tmp/zerotier-gateway/config.json ]; then\n' >> /usr/sbin/zerotier-one && \
     printf '            NETWORK_ID=$(jq -r .network_id /tmp/zerotier-gateway/config.json 2>/dev/null || echo "")\n' >> /usr/sbin/zerotier-one && \
     printf '            if [ -n "$NETWORK_ID" ]; then\n' >> /usr/sbin/zerotier-one && \
-    printf '                echo "200 listnetworks $NETWORK_ID - - OK PRIVATE zt0 00:00:00:00:00:00 10.10.10.10/24"\n' >> /usr/sbin/zerotier-one && \
+    printf '                echo "200 listnetworks $NETWORK_ID - - OK PRIVATE zt0 00:00:00:00:00:00 10.147.20.1/24"\n' >> /usr/sbin/zerotier-one && \
     printf '            else\n' >> /usr/sbin/zerotier-one && \
     printf '                echo "200 listnetworks <none>"\n' >> /usr/sbin/zerotier-one && \
     printf '            fi\n' >> /usr/sbin/zerotier-one && \

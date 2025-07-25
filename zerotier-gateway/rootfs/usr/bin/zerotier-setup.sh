@@ -44,7 +44,7 @@ fi
 # Get network info
 NETWORK_INFO=$(zerotier-cli listnetworks | grep "${NETWORK_ID}")
 if [[ -n "$NETWORK_INFO" ]]; then
-    ZT_IP=$(echo "$NETWORK_INFO" | awk '{print $9}' | cut -d'/' -f1)
+    ZT_IP=$(echo "$NETWORK_INFO" | awk '{print $10}' | cut -d'/' -f1)
     ZT_DEVICE=$(echo "$NETWORK_INFO" | awk '{print $8}')
     
     bashio::log.info "Zerotier IP: ${ZT_IP}"
