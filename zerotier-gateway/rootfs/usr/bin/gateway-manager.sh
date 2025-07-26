@@ -96,7 +96,12 @@ if [[ "$ENABLE_GATEWAY" == "true" ]]; then
         bashio::log.info "   📍 Via: ${ZT_IP} ← COPY THIS EXACTLY!"
         bashio::log.info "6. Click the checkmark to save"
         bashio::log.info ""
-        bashio::log.info "Without this route, the gateway won't work!"
+        bashio::log.info ""
+        bashio::log.info "7. ALSO add a static route on your router:"
+        bashio::log.info "   📍 Destination: ${ZT_SUBNET}"
+        bashio::log.info "   📍 Gateway: $(hostname -I | awk '{print $1}') (this device)"
+        bashio::log.info ""
+        bashio::log.info "Without BOTH routes, the gateway won't work!"
         bashio::log.info "Full documentation: See the DOCS tab in the add-on"
         bashio::log.info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     else

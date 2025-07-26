@@ -76,6 +76,34 @@ Your ZeroTier identity and network configurations are stored in `/data/zerotier-
   - Usually starts with `172.x.x.x` or `10.x.x.x`
   - This tells Zerotier to route traffic for your local network through Home Assistant
 
+### Step 5: Configure Your Local Router (IMPORTANT!)
+
+For devices on your local network to respond to ZeroTier connections, your router needs to know where to send the return traffic.
+
+**Add a static route on your router:**
+- **Destination Network**: `192.168.195.0/24` (or your ZeroTier network range)
+- **Gateway/Next Hop**: `192.168.178.111` (your Home Assistant's local IP)
+- **Interface**: LAN (if asked)
+
+**Example for common routers:**
+
+**Fritz!Box:**
+1. Go to Home Network → Network → Network Settings → Static Routing Table
+2. Click "New Route"
+3. Enter:
+   - Network: `192.168.195.0`
+   - Subnet mask: `255.255.255.0`
+   - Gateway: `192.168.178.111` (your HA IP)
+
+**Asus/DD-WRT/OpenWRT:**
+1. Go to Advanced Settings → LAN → Route
+2. Add static route:
+   - Network/Host IP: `192.168.195.0`
+   - Netmask: `255.255.255.0`
+   - Gateway: `192.168.178.111`
+
+**Why this is needed:** Without this route, devices on your local network will try to send responses to ZeroTier IPs through your internet connection instead of through Home Assistant.
+
 ## Troubleshooting
 
 ### Device Not Appearing in Zerotier Central
