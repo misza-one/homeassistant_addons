@@ -45,24 +45,40 @@ if [[ "$ENABLE_GATEWAY" == "true" ]]; then
         bashio::log.info "Default interface: ${DEFAULT_IF}"
         bashio::log.info "Local subnet: ${LOCAL_SUBNET}"
         
+        # Get ZeroTier subnet for cleanup
+        ZT_SUBNET=$(echo "$ZT_IP" | cut -d'.' -f1-3).0/24
+        
         # Clear only our specific rules (don't flush everything)
         # Remove previous zerotier-related rules if they exist
-        iptables -t nat -D POSTROUTING -s ${ZT_IP}/24 -d ${LOCAL_SUBNET} -j MASQUERADE 2>/dev/null || true
-        iptables -t nat -D POSTROUTING -s ${ZT_IP}/24 -o ${DEFAULT_IF} -j MASQUERADE 2>/dev/null || true
+        iptables -t nat -D POSTROUTING -s ${ZT_SUBNET} -d ${LOCAL_SUBNET} -j MASQUERADE 2>/dev/null || true
+        iptables -t nat -D POSTROUTING -s ${ZT_SUBNET} -o ${DEFAULT_IF} -j MASQUERADE 2>/dev/null || true
         
         iptables -D FORWARD -i ${ZT_DEVICE} -o ${DEFAULT_IF} -j ACCEPT 2>/dev/null || true
         iptables -D FORWARD -i ${DEFAULT_IF} -o ${ZT_DEVICE} -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
         iptables -D FORWARD -i ${ZT_DEVICE} -d ${LOCAL_SUBNET} -j ACCEPT 2>/dev/null || true
         iptables -D FORWARD -s ${LOCAL_SUBNET} -o ${ZT_DEVICE} -j ACCEPT 2>/dev/null || true
         
+        # Get ZeroTier subnet (use the network range, not just our IP)
+        # ZeroTier typically uses /24 for the managed routes
+        ZT_SUBNET=$(echo "$ZT_IP" | cut -d'.' -f1-3).0/24
+        
+        bashio::log.info "ZeroTier subnet: ${ZT_SUBNET}"
+        
         # Set up NAT and forwarding rules
-        iptables -t nat -A POSTROUTING -s ${ZT_IP}/24 -d ${LOCAL_SUBNET} -j MASQUERADE
-        iptables -t nat -A POSTROUTING -s ${ZT_IP}/24 -o ${DEFAULT_IF} -j MASQUERADE
+        iptables -t nat -A POSTROUTING -s ${ZT_SUBNET} -d ${LOCAL_SUBNET} -j MASQUERADE
+        iptables -t nat -A POSTROUTING -s ${ZT_SUBNET} -o ${DEFAULT_IF} -j MASQUERADE
         
         iptables -A FORWARD -i ${ZT_DEVICE} -o ${DEFAULT_IF} -j ACCEPT
         iptables -A FORWARD -i ${DEFAULT_IF} -o ${ZT_DEVICE} -m state --state RELATED,ESTABLISHED -j ACCEPT
         iptables -A FORWARD -i ${ZT_DEVICE} -d ${LOCAL_SUBNET} -j ACCEPT
         iptables -A FORWARD -s ${LOCAL_SUBNET} -o ${ZT_DEVICE} -j ACCEPT
+        
+        # Enable IP forwarding explicitly
+        sysctl -w net.ipv4.ip_forward=1
+        
+        # Add debug info
+        bashio::log.info "Running gateway debug..."
+        /usr/bin/gateway-debug.sh
         
         bashio::log.info "Gateway setup completed!"
         bashio::log.info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
