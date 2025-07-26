@@ -122,6 +122,9 @@ if [[ "$ENABLE_GATEWAY" == "true" ]]; then
 fi
 
 # Keep the service running and monitor
+bashio::log.info "Gateway is initializing, please wait..."
+rm -f /tmp/gateway-ready
+
 while true; do
     # Check if zerotier is still running
     if ! pgrep zerotier-one > /dev/null; then
@@ -129,6 +132,9 @@ while true; do
         exit 1
     fi
     
-    # Check network status every 30 seconds
-    sleep 30
+    # Run gateway monitor to check readiness
+    /usr/bin/gateway-monitor.sh
+    
+    # Check network status every 10 seconds
+    sleep 10
 done

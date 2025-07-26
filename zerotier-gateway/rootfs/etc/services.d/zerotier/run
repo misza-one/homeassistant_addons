@@ -12,5 +12,7 @@ if [ -f /data/zerotier-one/identity.public ]; then
     bashio::log.info "ZeroTier Node ID: ${NODE_ID}"
 fi
 
-# Start zerotier-one in foreground mode
-exec zerotier-one -U -p0
+# Start zerotier-one in foreground mode with faster startup
+# -U = run in foreground
+# -p0 = use standard port 9993
+exec zerotier-one -U -p9993
