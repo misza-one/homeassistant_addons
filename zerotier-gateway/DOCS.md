@@ -4,6 +4,13 @@
 
 This add-on connects your Home Assistant to a Zerotier network and enables gateway functionality, allowing you to access your entire local network from anywhere through Zerotier.
 
+## Data Persistence
+
+Your ZeroTier identity and network configurations are stored in `/data/zerotier-one` which persists across addon restarts and updates. This ensures:
+- Your device ID remains the same
+- Network authorizations are preserved  
+- No need to re-authorize after restarts
+
 ## Initial Setup
 
 ### Step 1: Create a Zerotier Network

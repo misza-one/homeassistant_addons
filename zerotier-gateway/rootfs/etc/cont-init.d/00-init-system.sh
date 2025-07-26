@@ -3,9 +3,22 @@
 bashio::log.info "Initializing Zerotier Gateway Add-on..."
 
 # Create necessary directories
-mkdir -p /var/lib/zerotier-one
 mkdir -p /tmp/zerotier-gateway
-mkdir -p /share/zerotier-gateway
+mkdir -p /data/zerotier-one
+
+# Use persistent storage for ZeroTier identity
+if [ ! -L /var/lib/zerotier-one ]; then
+    rm -rf /var/lib/zerotier-one
+    ln -s /data/zerotier-one /var/lib/zerotier-one
+    bashio::log.info "Linked ZeroTier data directory to persistent storage"
+fi
+
+# Show existing identity if present
+if [ -f /data/zerotier-one/identity.secret ]; then
+    bashio::log.info "Using existing ZeroTier identity"
+else
+    bashio::log.info "New ZeroTier identity will be created"
+fi
 
 # Set up TUN device
 if [ ! -c /dev/net/tun ]; then

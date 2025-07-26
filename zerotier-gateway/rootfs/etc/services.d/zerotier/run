@@ -2,8 +2,15 @@
 
 bashio::log.info "Starting Zerotier One daemon..."
 
-# Create required directories
-mkdir -p /var/lib/zerotier-one
+# Ensure data directory has correct permissions
+chown -R root:root /data/zerotier-one 2>/dev/null || true
+chmod 700 /data/zerotier-one 2>/dev/null || true
+
+# Show node ID if identity exists
+if [ -f /data/zerotier-one/identity.public ]; then
+    NODE_ID=$(zerotier-cli info 2>/dev/null | awk '{print $3}' || echo "unknown")
+    bashio::log.info "ZeroTier Node ID: ${NODE_ID}"
+fi
 
 # Start zerotier-one in foreground mode
 exec zerotier-one -U -p0
