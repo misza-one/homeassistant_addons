@@ -36,7 +36,7 @@ if [[ "$ENABLE_GATEWAY" == "true" ]]; then
     ZT_DEVICE=$(jq -r '.device' $NETWORK_FILE)
     ZT_IP=$(jq -r '.ip' $NETWORK_FILE)
     
-    if [[ "$ZT_DEVICE" != "null" && "$ZT_IP" != "null" ]]; then
+    if [[ "$ZT_DEVICE" != "null" && "$ZT_IP" != "null" && -n "$ZT_IP" && -n "$ZT_DEVICE" ]]; then
         # Get default interface
         DEFAULT_IF=$(ip route | grep default | awk '{print $5}' | head -n1)
         
@@ -83,7 +83,24 @@ if [[ "$ENABLE_GATEWAY" == "true" ]]; then
         bashio::log.info "Full documentation: See the DOCS tab in the add-on"
         bashio::log.info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     else
-        bashio::log.error "Could not get Zerotier network information"
+        if [[ -n "$ZT_DEVICE" && -z "$ZT_IP" ]]; then
+            bashio::log.warning "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            bashio::log.warning "⚠️  DEVICE NOT AUTHORIZED IN ZEROTIER CENTRAL!"
+            bashio::log.warning ""
+            bashio::log.warning "Your device has joined the network but hasn't been authorized yet."
+            bashio::log.warning "Device: ${ZT_DEVICE}"
+            bashio::log.warning ""
+            bashio::log.warning "To fix this:"
+            bashio::log.warning "1. Go to https://my.zerotier.com"
+            bashio::log.warning "2. Click on your network"
+            bashio::log.warning "3. Scroll to 'Members' section"
+            bashio::log.warning "4. Find this device and check the 'Auth?' checkbox"
+            bashio::log.warning "5. An IP address will be assigned automatically"
+            bashio::log.warning "6. Restart this addon after authorization"
+            bashio::log.warning "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        else
+            bashio::log.error "Could not get Zerotier network information"
+        fi
     fi
 fi
 

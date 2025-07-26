@@ -41,11 +41,23 @@ if [ $timeout -le 0 ]; then
     bashio::log.warning "Network join timed out. Check Zerotier Central to authorize this device."
 fi
 
-# Get network info
+# Get network info - handle different output formats
 NETWORK_INFO=$(zerotier-cli listnetworks | grep "${NETWORK_ID}")
 if [[ -n "$NETWORK_INFO" ]]; then
-    ZT_IP=$(echo "$NETWORK_INFO" | awk '{print $10}' | cut -d'/' -f1)
-    ZT_DEVICE=$(echo "$NETWORK_INFO" | awk '{print $8}')
+    # Real ZeroTier output format: 200 listnetworks <nwid> <name> <mac> <status> <type> <dev> <ZT assigned ips>
+    # The IP might be in different positions depending on the status
+    # Try to find an IP address pattern in the line
+    ZT_IP=$(echo "$NETWORK_INFO" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}' | head -1 | cut -d'/' -f1)
+    
+    # Device name is typically the 8th field but could vary
+    ZT_DEVICE=$(echo "$NETWORK_INFO" | awk '{
+        for(i=1;i<=NF;i++) {
+            if($i ~ /^zt[a-z0-9]+$/) {
+                print $i
+                exit
+            }
+        }
+    }')
     
     bashio::log.info "Zerotier IP: ${ZT_IP}"
     bashio::log.info "Zerotier Device: ${ZT_DEVICE}"
