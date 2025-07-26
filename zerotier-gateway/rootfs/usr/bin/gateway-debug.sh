@@ -4,7 +4,7 @@ bashio::log.info "=== GATEWAY DEBUG INFO ==="
 
 # Check IP forwarding
 bashio::log.info "IP Forwarding status:"
-sysctl net.ipv4.ip_forward
+cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo "Cannot read IP forwarding status"
 
 # Show network interfaces
 bashio::log.info ""

@@ -1,6 +1,6 @@
 ---
 name: "Zerotier Gateway"
-version: "4.0.3"
+version: "4.0.4"
 slug: "zerotier_gateway"
 description: "Connect to Zerotier network and enable gateway functionality for local network access"
 url: "https://github.com/misza-one/homeassistant_addons"

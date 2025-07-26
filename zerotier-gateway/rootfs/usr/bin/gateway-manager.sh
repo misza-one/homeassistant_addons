@@ -73,12 +73,13 @@ if [[ "$ENABLE_GATEWAY" == "true" ]]; then
         iptables -A FORWARD -i ${ZT_DEVICE} -d ${LOCAL_SUBNET} -j ACCEPT
         iptables -A FORWARD -s ${LOCAL_SUBNET} -o ${ZT_DEVICE} -j ACCEPT
         
-        # Enable IP forwarding explicitly
-        sysctl -w net.ipv4.ip_forward=1
+        # IP forwarding is handled by Home Assistant privileged mode
+        # Just check the status
+        bashio::log.info "IP forwarding status: $(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo 'unknown')"
         
         # Add debug info
         bashio::log.info "Running gateway debug..."
-        /usr/bin/gateway-debug.sh
+        /usr/bin/gateway-debug.sh || true
         
         bashio::log.info "Gateway setup completed!"
         bashio::log.info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
