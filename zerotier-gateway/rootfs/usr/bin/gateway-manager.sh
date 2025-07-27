@@ -127,8 +127,13 @@ if [[ "$ENABLE_GATEWAY" == "true" ]]; then
 fi
 
 # Keep the service running and monitor
-bashio::log.info "Gateway is initializing, please wait..."
 rm -f /tmp/gateway-ready
+
+# Show initialization message only if gateway was setup
+if [[ "$ENABLE_GATEWAY" == "true" ]] && [[ -n "$ZT_IP" ]]; then
+    bashio::log.info "Gateway is initializing, this can take up to 5 minutes..."
+    bashio::log.info "The addon is working, just waiting for network routes to establish"
+fi
 
 while true; do
     # Check if zerotier is still running
