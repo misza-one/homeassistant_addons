@@ -1,5 +1,77 @@
 # Changelog
 
+## 4.1.4 - 2025-07-27
+
+### Added
+- Proper ZeroTier logo as icon.png and logo.png
+- Visual branding in addon store and UI
+
+## 4.1.3 - 2025-07-27
+
+### Improved
+- Better initialization message explaining wait time (up to 5 minutes)
+- Only shows message when gateway is enabled
+- Clarifies addon is working while waiting for routes
+
+## 4.1.2 - 2025-07-27
+
+### Added
+- Router static route documentation in DOCS.md
+- Examples for Fritz!Box, Asus, DD-WRT, OpenWRT
+- Gateway setup message now shows both required routes
+- Explains why router configuration is needed
+
+## 4.1.1 - 2025-07-26
+
+### Added
+- Gateway readiness monitoring with status messages
+- Shows "GATEWAY IS FULLY OPERATIONAL" when ready
+- Monitors connectivity every 10 seconds
+
+### Improved
+- Faster startup using specific port 9993
+- Better feedback during initialization
+
+## 4.1.0 - 2025-07-26
+
+### Added
+- **Persistent ZeroTier identity** across restarts
+- Data stored in /data/zerotier-one directory
+- Shows node ID on startup
+
+### Fixed
+- No more device ID changes after restart
+- Network authorizations preserved
+
+## 4.0.4 - 2025-07-26
+
+### Fixed
+- Permission errors with sysctl commands
+- IP forwarding handled by host settings
+- Improved error handling in scripts
+
+## 4.0.3 - 2025-07-26
+
+### Fixed
+- Gateway connectivity using full ZeroTier subnet
+- Added gateway debug script
+- Shows network configuration for troubleshooting
+
+## 4.0.2 - 2025-07-26
+
+### Fixed
+- Parsing for real ZeroTier output format
+- Better IP address detection with regex
+- Clear message when device needs authorization
+- Handles unique device names (ztXXXXXXXX)
+
+## 4.0.1 - 2025-07-26
+
+### Fixed
+- Multi-architecture build issues
+- Uses base image directly
+- Placeholder for unsupported architectures
+
 ## 4.0.0 - 2025-07-26
 
 ### Added
